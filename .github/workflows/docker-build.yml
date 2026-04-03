@@ -1,0 +1,27 @@
+name: Docker Build Check
+
+on:
+    push:
+        branches: ["main"]
+    pull_request:
+        branches: ["main"]
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+
+        steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
+
+        - name: Set up Docker Buildx
+          uses: docker/setup-buildx-actions@v3
+
+        - name: Build Docker Image
+          uses: docker/build-push-actions@v5
+          with:
+            context:
+            push: false
+            tags: age-predictor:latest
+            cache-from: type=gha
+            cache-to: type=gha, mode=max
