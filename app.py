@@ -7,6 +7,7 @@ import numpy as np
 import logging
 import time
 import json
+from datetime import date
 
 # --- STEP 1: LOAD ONLY THE WORKING ASSETS ---
 @st.cache_resource
@@ -49,15 +50,26 @@ if name_input:
     # --- STEP 5: REVERSE SCALING ---
     # Formula: Year = (Scaled_Value * (Max - Min)) + Min
     final_year = int((pred_scaled * (max_year - min_year)) + min_year)
+    
+    # Current date
+    current_date = date.today()
+    
+    # Current year
+    current_year = current_date.year
+    
+    # Predicted age = current_year - predicted year
+    final_age = current_year - final_year
     duration_time = time.time() - start_time
     
     # logger.info(f"PREDICTION_LOG: name= {name_input}, result= {final_year}, latency = {duration_time: .4f}s")
     log_data = {
         "name": name_input,
         "predicted_year": final_year,
+        "predicted_age": final_age,
         "latency": round(duration_time,4),
         "model_version": "v1.0"
     }
     logger.info(json.dumps(log_data, ensure_ascii=False))
     # --- STEP 6: OUTPUT ---
     st.success(f"Prediction: **{final_year}**")
+    st.metric(label="Estimated age", value = f"{final_age} years old")
