@@ -58,10 +58,10 @@ The application was integrated with two kinds of interpretation :
 
 ![Chart](images/stats_trends.png)
 
-a) Historical trend visualization to understand the context
+### a) Historical trend visualization to understand the context <br>
 The app compares the prediction against the raw INSEE ground truth data. For names like Benoît, the model predicts the Mean (which is the average age), wheras the line chart reveals the Mode (the historical peak popularity). This allows users to see why a prediction might differ from expectations. 
 
-b) Statistical confidence interval to (uncertainty quantification) 
+### b) Statistical confidence interval to (uncertainty quantification) <br>
 To do this, the Monte Carlo dropout was implemented to quantify the model uncertainty. Instead of single deterministic guess, the model performs N = 50 forward passes with dropout layers active. 
 
 Formulas used : 
