@@ -1,5 +1,4 @@
 french_demographic_prediction/
-images/
 venv/
 .venv/
 env/
@@ -10,4 +9,4 @@ __pycache__/
 
 .ipynb_checkpoints/
 
-*.csv
+# *.csv
