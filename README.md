@@ -52,3 +52,21 @@ docker run -p 8080:8080 age-predictor-app
 The application tracks every prediction for performance monitoring. Logs are output in structured JSON format for easy ingestion by cloud logging systems, such as GCP Cloud Logging or ELK stack
 
 ![prediction_logs](images/predicttion_logs.png)
+
+## 8. Explainable AI & uncertainty
+The application was integrated with two kinds of interpretation :
+
+a) Historical trend visualization to understand the context
+The app compares the prediction against the raw INSEE ground truth data. For names like Benoît, the model predicts the Mean (which is the average age), wheras the line chart reveals the Mode (the historical peak popularity). This allows users to see why a prediction might differ from expectations. 
+
+b) Statistical confidence interval to (uncertainty quantification) 
+To do this, the Monte Carlo dropout was implemented to quantify the model uncertainty. Instead of single deterministic guess, the model performs N = 50 forward passes with dropout layers active. 
+
+Formulas used : 
+- Standard deviation : calculated from the N predictions to measure model's instability for a given name. 
+- 95% confidence interval : <br>
+   $$\text {Prediction range} = {Mean} \pm (1.96 \times \sigma)
+   $$
+- Reverse scaling to convert the model's [0, 1] output back to a calendar year : <br>
+   $$\text {Year} = (\text{Scaled value} \times \text({max year} - {min year})) + \text{min year}
+   $$
