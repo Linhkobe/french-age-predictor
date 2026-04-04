@@ -10,23 +10,37 @@ import json
 from datetime import date
 import pandas as pd
 
-# --- STEP 1: LOAD ONLY THE WORKING ASSETS ---
+## FUNCTION TO LOAD MODEL ASSETS (MODEL ITSELF, TOKENIZER, SCALER)
 @st.cache_resource
 def load_assets():
+    # The model itself
     model = tf.keras.models.load_model("french_age_predictor.h5", compile=False)
+    
+    # Tokenizer
     with open("age_tokenizer.pkl", "rb") as f:
         tokenizer = pickle.load(f)
         
-    # Load the scaler 
+    # Scaler
     import json
     with open("age_scaler.json", "r") as f:
         metadata = json.load(f)
         
     return model, tokenizer, metadata
 
+## FUNCTION TO LOAD THE TREND OF NAMES (GROUPED DATA)
 @st.cache_data
 def load_trend_data():
     return pd.read_csv('name_trends.csv')
+
+## FUNCTION OF UNCERTAINTY
+def predict_with_uncertainty(model, X_input, iterations= 50):
+    X_tensor = tf.convert_to_tensor(X_input, dtype = tf.float32)
+    predictions = [model(X_tensor, training=True) for _ in range(iterations)]
+    predictions = np.array(predictions)
+    mean_prediction = np.mean(predictions)
+    std_dev = np.std(predictions)
+    
+    return mean_prediction, std_dev
 
 model, tokenizer, metadata = load_assets()
 
@@ -35,7 +49,7 @@ df_trends = load_trend_data()
 min_year = metadata["min_"]
 max_year = metadata["max_"]
 
-# --- STEP 2: UI DESIGN ---
+# STREAMLIT UI DESIGN ---
 st.title("French Name Age Predictor")
 
 name_input = st.text_input("First name:", placeholder="e.g., Jean-Kevin")
@@ -45,16 +59,18 @@ logger = logging.getLogger(__name__)
 
 if name_input:
     start_time = time.time()
-    # --- STEP 3: PREPROCESS ---
+    # --- STEP 1: PREPROCESS ---
     name_clean = unicodedata.normalize("NFC", name_input.lower().strip())
     seq = tokenizer.texts_to_sequences([name_clean])
     padded = pad_sequences(seq, maxlen=18, padding="post")
     
-    # --- STEP 4: PREDICT ---
+    # --- STEP 2: PREDICT ---
     # The model outputs a value between 0 and 1
     pred_scaled = model.predict(padded, verbose=0)[0][0]
     
-    # --- STEP 5: REVERSE SCALING ---
+    mean_scaled, std_dev_scaled = predict_with_uncertainty(model, padded, iterations=50)
+    
+    # --- STEP 3: REVERSE SCALING ---
     # Formula: Year = (Scaled_Value * (Max - Min)) + Min
     final_year = int((pred_scaled * (max_year - min_year)) + min_year)
     
@@ -68,6 +84,19 @@ if name_input:
     final_age = current_year - final_year
     duration_time = time.time() - start_time
     
+    # CALCULATE CONFIDENCE INTERVAL
+    z_score = 1.96
+    
+    lower_scaled = mean_scaled - (z_score * std_dev_scaled)
+    upper_scaled = mean_scaled + (z_score * std_dev_scaled)
+    
+    year_low = int((lower_scaled * (max_year - min_year)) + min_year)
+    year_high = int((upper_scaled * (max_year - min_year)) + min_year)
+    
+    # Convert to age range
+    age_low = current_year - year_high
+    age_high = current_year - year_low
+    
     # logger.info(f"PREDICTION_LOG: name= {name_input}, result= {final_year}, latency = {duration_time: .4f}s")
     log_data = {
         "name": name_input,
@@ -77,9 +106,16 @@ if name_input:
         "model_version": "v1.0"
     }
     logger.info(json.dumps(log_data, ensure_ascii=False))
-    # --- STEP 6: OUTPUT ---
+    
+    # --- STEP 4: OUTPUT ---
     st.success(f"Prediction: **{final_year}**")
-    st.metric(label="Estimated age", value = f"{final_age} years old")
+    st.metric(
+        label="Estimated age", 
+        value = f"{final_age} years old"
+    )
+    
+    st.subheader("Statistical age analysis")
+    st.write(f"95% Confidence interval: between {age_low} and {age_high} years old.")
     
     st.subheader(f"Historical popularity of {name_input}")
 
@@ -93,27 +129,20 @@ if name_input:
         
     import matplotlib.pyplot as plt
 
-    # 1. Create the figure
     fig, ax = plt.subplots(figsize=(10, 5))
 
-    # 2. Plot: X must be the YEAR, Y is the COUNT
-    # Change 'annais' to 'year' if that is what your CSV uses
     ax.plot(name_history['birth_year'], name_history['count'], 
             label='Actual Historical Data', 
             color='#1f77b4', linewidth=2)
 
-    # 3. Add the AI Prediction vertical line
+    # AI Prediction vertical line
     ax.axvline(x=final_year, color='red', linestyle='--', 
             label=f'AI Prediction ({int(final_year)})')
 
-    # 4. Add Titles and Labels
     ax.set_title(f"Historical Popularity vs. AI Prediction for '{name_input.capitalize()}'", fontsize=14)
     ax.set_xlabel("Year of Birth", fontsize=12)
     ax.set_ylabel("Number of Births (INSEE)", fontsize=12)
 
-    # 5. Visual Cleanup
     ax.grid(axis='y', linestyle='--', alpha=0.7)
     ax.legend()
-
-    # 6. Display in Streamlit
     st.pyplot(fig)
