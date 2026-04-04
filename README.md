@@ -56,6 +56,8 @@ The application tracks every prediction for performance monitoring. Logs are out
 ## 8. Explainable AI & uncertainty
 The application was integrated with two kinds of interpretation :
 
+![Chart](images/stats_trends.png)
+
 a) Historical trend visualization to understand the context
 The app compares the prediction against the raw INSEE ground truth data. For names like Benoît, the model predicts the Mean (which is the average age), wheras the line chart reveals the Mode (the historical peak popularity). This allows users to see why a prediction might differ from expectations. 
 
