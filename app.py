@@ -139,6 +139,8 @@ if name_input:
     ax.axvline(x=final_year, color='red', linestyle='--', 
             label=f'AI Prediction ({int(final_year)})')
 
+    # Confidence interval shade
+    ax.axvspan(year_low, year_high, color = 'crimson', alpha = 0.2, label = "95% confidence interval")
     ax.set_title(f"Historical Popularity vs. AI Prediction for '{name_input.capitalize()}'", fontsize=14)
     ax.set_xlabel("Year of Birth", fontsize=12)
     ax.set_ylabel("Number of Births (INSEE)", fontsize=12)
