@@ -8,6 +8,7 @@ import logging
 import time
 import json
 from datetime import date
+import pandas as pd
 
 # --- STEP 1: LOAD ONLY THE WORKING ASSETS ---
 @st.cache_resource
@@ -23,7 +24,13 @@ def load_assets():
         
     return model, tokenizer, metadata
 
+@st.cache_data
+def load_trend_data():
+    return pd.read_csv('name_trends.csv')
+
 model, tokenizer, metadata = load_assets()
+
+df_trends = load_trend_data()
 
 min_year = metadata["min_"]
 max_year = metadata["max_"]
@@ -73,3 +80,40 @@ if name_input:
     # --- STEP 6: OUTPUT ---
     st.success(f"Prediction: **{final_year}**")
     st.metric(label="Estimated age", value = f"{final_age} years old")
+    
+    st.subheader(f"Historical popularity of {name_input}")
+
+    name_history = df_trends[df_trends['first_name'].str.upper() == name_input.upper()]
+
+    if not name_history.empty:
+        st.line_chart(name_history.set_index('birth_year')['count'])
+    else:
+        st.info("No historical data found for this psecific name to show trends.")
+        
+        
+    import matplotlib.pyplot as plt
+
+    # 1. Create the figure
+    fig, ax = plt.subplots(figsize=(10, 5))
+
+    # 2. Plot: X must be the YEAR, Y is the COUNT
+    # Change 'annais' to 'year' if that is what your CSV uses
+    ax.plot(name_history['birth_year'], name_history['count'], 
+            label='Actual Historical Data', 
+            color='#1f77b4', linewidth=2)
+
+    # 3. Add the AI Prediction vertical line
+    ax.axvline(x=final_year, color='red', linestyle='--', 
+            label=f'AI Prediction ({int(final_year)})')
+
+    # 4. Add Titles and Labels
+    ax.set_title(f"Historical Popularity vs. AI Prediction for '{name_input.capitalize()}'", fontsize=14)
+    ax.set_xlabel("Year of Birth", fontsize=12)
+    ax.set_ylabel("Number of Births (INSEE)", fontsize=12)
+
+    # 5. Visual Cleanup
+    ax.grid(axis='y', linestyle='--', alpha=0.7)
+    ax.legend()
+
+    # 6. Display in Streamlit
+    st.pyplot(fig)
