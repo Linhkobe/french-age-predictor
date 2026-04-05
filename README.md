@@ -16,7 +16,7 @@ https://french-age-predictor-ba93deuaxymamvt5ebh64g.streamlit.app/
 - Streamlit : deployed via streamlit for live demo 
 
 ## 4. Data & Model architecture
-- Dataset : used only two variables ("preusuel" - first year as explanatory variable and "annais" - birth year as response variable)
+- Dataset : used only two variables ("preusuel" - first name as explanatory variable and "annais" - birth year as response variable)
 - Preprocessing : custom tokenizer for character-level name encoding and a MinMaxScaler for target year normalization 
 - Model with layers
    + Embedding Layer 
